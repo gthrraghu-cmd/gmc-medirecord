@@ -1,0 +1,1 @@
+window.gmcServer = false

@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { db, SYNC_TABLES, SYNC_SETTINGS, onLocalChange, setTrackDeletes, tombKey, getSetting, setSetting } from './db.js'
 import { deriveSyncKey, randomSalt, sealText, openText } from './crypto.js'
 import { blobToDataURL, dataURLToBlob } from './image.js'
+import { pgBridge } from './bridge.js'
 import { SyncError, normaliseUrl, signIn, refreshSession, upsertRows, fetchMeta, fetchPage } from './syncRemote.js'
 
 const CFG = 'syncCfg'
@@ -169,8 +170,8 @@ const cloudBackend = {
 }
 
 function pgApi() {
-  const api = typeof window !== 'undefined' && window.gmcDesktop && window.gmcDesktop.pg
-  if (!api) throw new SyncError('PostgreSQL works only in the installed desktop app.', 'server')
+  const api = pgBridge()
+  if (!api) throw new SyncError('PostgreSQL works only in the app opened from this laptop.', 'server')
   return api
 }
 
@@ -470,7 +471,7 @@ async function markAllDirty() {
 }
 
 export function desktopPostgresAvailable() {
-  return typeof window !== 'undefined' && !!(window.gmcDesktop && window.gmcDesktop.pg)
+  return !!pgBridge()
 }
 
 export async function connectPostgres(form) {
@@ -489,7 +490,7 @@ export async function connectPostgres(form) {
 
 export async function disconnectSync() {
   const cfg = await loadCfg()
-  if (cfg?.mode === 'postgres' && desktopPostgresAvailable()) await window.gmcDesktop.pg.forget()
+  if (cfg?.mode === 'postgres' && desktopPostgresAvailable()) await pgBridge().forget()
   stopSync()
   session = null
   cryptoKey = null

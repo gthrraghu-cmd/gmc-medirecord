@@ -13,7 +13,10 @@
     "preview": "vite preview",
     "build:desktop": "vite build --mode desktop",
     "desktop": "vite build --mode desktop && electron .",
-    "dist:win": "vite build --mode desktop && electron-builder --win nsis --x64"
+    "dist:win": "vite build --mode desktop && electron-builder --win nsis --x64",
+    "clinic": "node server/server.cjs --open",
+    "clinic:install": "node server/server.cjs --install",
+    "clinic:uninstall": "node server/server.cjs --uninstall"
   },
   "build": {
     "appId": "in.gayathriclinic.medirecord",
@@ -26,6 +29,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "server/pgcore.cjs",
       "build/icon.png",
       "package.json"
     ],
