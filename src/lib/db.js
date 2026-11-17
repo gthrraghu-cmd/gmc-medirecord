@@ -71,7 +71,8 @@ db.version(7).stores({
 })
 
 export const SYNC_TABLES = ['patients', 'visits', 'appointments', 'cases', 'packages', 'photos', 'documents', 'templates', 'expenses', 'settings']
-export const SYNC_SETTINGS = ['profile', 'patientCounter', 'receiptCounter']
+export const SYNC_SETTINGS = ['profile', 'patientCounter', 'receiptCounter', 'pinHash', 'pinSalt']
+export const PIN_KEYS = ['pinHash', 'pinSalt']
 const AUTO_ID = ['patients', 'visits', 'appointments', 'packages', 'photos', 'documents', 'templates', 'expenses']
 
 let lastId = 0

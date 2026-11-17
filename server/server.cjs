@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const os = require('os')
 const { spawn } = require('child_process')
+const readline = require('readline')
 const createPg = require('./pgcore.cjs')
 
 const PORT = Number(process.env.GMC_PORT) || 4747
@@ -216,6 +217,55 @@ async function waitUntilUp() {
   return false
 }
 
+function ask(question, hidden, fallback) {
+  return new Promise(resolve => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true })
+    let muted = false
+    if (hidden) {
+      rl._writeToOutput = text => {
+        if (!muted || text === '\r\n' || text === '\n') rl.output.write(text)
+        else rl.output.write('*'.repeat(text.length))
+      }
+    }
+    rl.question(question, answer => {
+      rl.close()
+      resolve(answer.trim() === '' && fallback !== undefined ? fallback : answer)
+    })
+    muted = true
+  })
+}
+
+async function setupPostgres(force) {
+  const existing = await pg.status()
+  if (existing.ok && existing.data && !force) {
+    console.log(`PostgreSQL: saving to ${existing.data.database} on ${existing.data.host}:${existing.data.port}`)
+    return true
+  }
+  if (!process.stdin.isTTY) return false
+  console.log('')
+  console.log('Connect PostgreSQL — press Enter to keep the value in [brackets]')
+  const host = await ask('  Host [localhost]: ', false, 'localhost')
+  const port = await ask('  Port [5432]: ', false, '5432')
+  const user = await ask('  User [postgres]: ', false, 'postgres')
+  const database = await ask('  Database [gmc_medirecord]: ', false, 'gmc_medirecord')
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const password = await ask('  Password: ', true)
+    const r = await pg.connect({ host, port, user, password, database })
+    if (r.ok) {
+      console.log(`PostgreSQL connected: ${r.data.database} · ${r.data.patients} patients already saved`)
+      await pg.shutdown()
+      return true
+    }
+    console.log('  ' + r.error)
+    if (r.offline) {
+      console.log('  Start the PostgreSQL service (Windows: Services → postgresql → Start), then run: npm run clinic:postgres')
+      return false
+    }
+  }
+  console.log('Skipped. Run "npm run clinic:postgres" to try again.')
+  return false
+}
+
 async function main() {
   const args = process.argv.slice(2)
   if (args.includes('--serve')) return startServer()
@@ -224,11 +274,16 @@ async function main() {
     console.log('The app is not built yet. Run: npm run build')
     process.exit(1)
   }
+  if (args.includes('--postgres')) {
+    await setupPostgres(true)
+    process.exit(0)
+  }
   if (args.includes('--uninstall')) {
     await removeStartup()
     console.log('Removed the automatic start. The server stops after the next restart.')
     return
   }
+  if (args.includes('--install')) await setupPostgres(false)
   if (!(await runningAlready())) startHidden()
   const up = await waitUntilUp()
   if (args.includes('--install') && process.platform === 'win32') {
