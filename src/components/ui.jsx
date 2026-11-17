@@ -27,9 +27,26 @@ export function Avatar({ name, gender, size = 'h-11 w-11 text-sm' }) {
   )
 }
 
+let scrollLocks = 0
+
+function lockScroll() {
+  scrollLocks += 1
+  document.body.style.overflow = 'hidden'
+}
+
+function unlockScroll() {
+  scrollLocks = Math.max(0, scrollLocks - 1)
+  if (!scrollLocks) document.body.style.overflow = ''
+}
+
 export function Modal({ open, onClose, title, subtitle, children, wide }) {
   const { tx } = useT()
   const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    lockScroll()
+    return unlockScroll
+  }, [open])
   useEffect(() => {
     if (!open) return
     const onKey = e => {
@@ -38,13 +55,7 @@ export function Modal({ open, onClose, title, subtitle, children, wide }) {
       if (all[all.length - 1] === ref.current) onClose()
     }
     window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      setTimeout(() => {
-        if (!document.querySelector('[data-modal-open="1"]')) document.body.style.overflow = ''
-      }, 0)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
   return createPortal(

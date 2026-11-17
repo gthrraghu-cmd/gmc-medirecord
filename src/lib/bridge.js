@@ -38,10 +38,17 @@ const serverBridge = {
   }
 }
 
+export const SERVER_PORT = '4747'
+
+function onLocalServer() {
+  const { hostname, port } = window.location
+  return (hostname === 'localhost' || hostname === '127.0.0.1') && port === SERVER_PORT
+}
+
 export function runtimeKind() {
   if (typeof window === 'undefined') return 'web'
   if (window.gmcDesktop && window.gmcDesktop.pg) return 'desktop'
-  if (window.gmcServer) return 'server'
+  if (window.gmcServer || onLocalServer()) return 'server'
   return 'web'
 }
 
