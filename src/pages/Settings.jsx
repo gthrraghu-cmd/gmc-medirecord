@@ -6,6 +6,9 @@ import { setPin, verifyPin } from '../lib/auth.js'
 import { Field, PageHeader, useToast } from '../components/ui.jsx'
 import { BackupDialog, ExportDialog, RestoreDialog } from '../components/DataDialogs.jsx'
 import AutoBackupCard from '../components/AutoBackupCard.jsx'
+import SyncCard from '../components/SyncCard.jsx'
+import PostgresCard from '../components/PostgresCard.jsx'
+import { desktopPostgresAvailable } from '../lib/sync.js'
 import { TemplatesCard } from '../components/Templates.jsx'
 import { useT } from '../lib/i18n.jsx'
 import { getThemePref, setThemePref } from '../lib/theme.js'
@@ -147,6 +150,8 @@ export default function Settings({ onProfileChange }) {
           )}
         </Card>
 
+        {desktopPostgresAvailable() ? <PostgresCard /> : <SyncCard />}
+
         <AutoBackupCard />
 
         <Card icon={ArrowLeftRight} title={tx('Move to another device')} text={tx('Laptop ↔ phone, or a new device')}>
@@ -258,6 +263,12 @@ export default function Settings({ onProfileChange }) {
           </form>
         </Card>
 
+        {typeof window !== 'undefined' && window.gmcDesktop ? (
+          <Card icon={MonitorSmartphone} title={tx('Desktop app')} text={tx('Installed on this computer · works fully offline')}>
+            <p className="text-sm text-gold-200/70">Records are kept inside this Windows user account and, once connected, saved into your PostgreSQL database. Keep automatic daily backup on as well so an encrypted copy is always in a folder you choose.</p>
+            <p className="mt-2 text-xs text-gold-200/45">Zoom: Ctrl + / Ctrl − / Ctrl 0</p>
+          </Card>
+        ) : (
         <Card icon={MonitorSmartphone} title={tx('Install as an app')} text={tx('One-time setup per device; works offline afterwards')}>
           <ul className="space-y-3 text-sm text-gold-200/70">
             <li><span className="font-semibold text-gold-300">Windows (Edge / Chrome):</span> open the app link → click the install icon in the address bar → “Install”.</li>
@@ -265,6 +276,7 @@ export default function Settings({ onProfileChange }) {
             <li><span className="font-semibold text-gold-300">iPhone (Safari):</span> Share → “Add to Home Screen”.</li>
           </ul>
         </Card>
+        )}
       </div>
 
       <BackupDialog open={backupOpen} onClose={() => setBackupOpen(false)} />

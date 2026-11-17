@@ -51,3 +51,33 @@ export async function decryptText(box, password) {
   }
   return new TextDecoder().decode(plain)
 }
+
+export function randomSalt() {
+  return toB64(crypto.getRandomValues(new Uint8Array(16)))
+}
+
+export async function deriveSyncKey(passphrase, saltB64) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey'])
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: fromB64(saltB64), iterations: ITERATIONS, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt'])
+}
+
+export async function sealText(key, text) {
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  let bytes = new TextEncoder().encode(text)
+  const gz = canGzip() && bytes.length > 512
+  if (gz) bytes = await pipe(bytes, new CompressionStream('gzip'))
+  const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes))
+  return (gz ? 'z.' : 'p.') + toB64(iv) + '.' + toB64(cipher)
+}
+
+export async function openText(key, sealed) {
+  const [mode, iv, data] = String(sealed).split('.')
+  let plain
+  try {
+    plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(iv) }, key, fromB64(data)))
+  } catch {
+    throw new Error('Wrong sync passphrase.')
+  }
+  if (mode === 'z') plain = await pipe(plain, new DecompressionStream('gzip'))
+  return new TextDecoder().decode(plain)
+}

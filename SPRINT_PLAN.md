@@ -20,3 +20,18 @@ One codebase, installed as an app on Windows (Edge/Chrome) and on Android/iPhone
 - Works with Wi-Fi turned off after first install
 - Checked on a 1440px desktop and a 390px phone screen
 - Backup from the previous sprint restores cleanly
+
+
+## Sprint 10 — Encrypted multi-device sync · Delivered
+- Clinic's own Supabase project; one sync account; records sealed with AES-256-GCM on the device using a clinic passphrase before upload
+- Offline-first: every device works without internet and swaps only changed records when online (every 30 s, on reconnect, and a few seconds after each change)
+- Newest edit wins; deletions reach every device; new records get clash-proof IDs; patient codes and receipt numbers continue from the highest seen
+- Settings → Sync across devices: set up the first device, join with a join code, sync now, turn off; live status in the sidebar and mobile header
+
+## Sprint 11 — Windows desktop app · Delivered
+- Installer (Gayathri-MediRecord-Setup.exe) with Desktop and Start-menu shortcuts, own window, fully offline
+
+## Sprint 12 — PostgreSQL storage · Delivered
+- Desktop app saves every record into the laptop's PostgreSQL (schema `medirecord`); database and tables created automatically
+- Ready-made views: patient_list, consultation_list, expense_list; photos and documents stored as bytea in `medirecord.files`
+- Works on if PostgreSQL is stopped and saves waiting changes when it is back; reinstalling pulls everything back from PostgreSQL

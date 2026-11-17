@@ -2,8 +2,9 @@ import { db, getSetting, setSetting } from './db.js'
 import { todayISO } from './format.js'
 import { blobToDataURL, dataURLToBlob } from './image.js'
 import { encryptText, decryptText } from './crypto.js'
+import { SYNC_SECRET, resetPullCursor } from './sync.js'
 
-const SECRET = ['pinHash', 'pinSalt', 'autoBackupDir', 'autoBackupPass', 'autoBackupOn', 'autoBackupLast', 'autoBackupFolder']
+const SECRET = ['pinHash', 'pinSalt', 'autoBackupDir', 'autoBackupPass', 'autoBackupOn', 'autoBackupLast', 'autoBackupFolder', ...SYNC_SECRET]
 const FileSystemHandleLike = typeof FileSystemHandle !== 'undefined' ? FileSystemHandle : class {}
 const APP = 'gayathri-medirecord'
 
@@ -127,6 +128,7 @@ export async function restoreBackup(parsed, password) {
       if (!SECRET.includes(s.key)) await db.settings.put(s)
     }
   })
+  await resetPullCursor()
   return { patients: data.patients.length, visits: data.visits.length }
 }
 

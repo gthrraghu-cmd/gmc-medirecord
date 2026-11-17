@@ -56,6 +56,83 @@ db.version(6).stores({
   settings: 'key'
 })
 
+db.version(7).stores({
+  patients: '++id, code, name, phone, department, createdAt, updatedAt, _rs',
+  visits: '++id, patientId, date, department, followUp, createdAt, payMode, paidOn, packageId, _rs',
+  appointments: '++id, date, patientId, status, token, [date+patientId], createdAt, _rs',
+  cases: 'patientId, updatedAt, _rs',
+  packages: '++id, patientId, status, createdAt, _rs',
+  photos: '++id, patientId, area, date, createdAt, _rs',
+  documents: '++id, patientId, category, date, createdAt, _rs',
+  templates: '++id, name, department, uses, createdAt, _rs',
+  expenses: '++id, date, category, createdAt, _rs',
+  settings: 'key, _rs',
+  tombstones: 'k, _rs'
+})
+
+export const SYNC_TABLES = ['patients', 'visits', 'appointments', 'cases', 'packages', 'photos', 'documents', 'templates', 'expenses', 'settings']
+export const SYNC_SETTINGS = ['profile', 'patientCounter', 'receiptCounter']
+const AUTO_ID = ['patients', 'visits', 'appointments', 'packages', 'photos', 'documents', 'templates', 'expenses']
+
+let lastId = 0
+function newId() {
+  let id = Date.now() * 1000 + Math.floor(Math.random() * 1000)
+  if (id <= lastId) id = lastId + 1
+  lastId = id
+  return id
+}
+
+let changeListener = null
+let trackDeletes = false
+export function onLocalChange(fn) {
+  changeListener = fn
+}
+export function setTrackDeletes(on) {
+  trackDeletes = !!on
+}
+function ping() {
+  if (changeListener) setTimeout(changeListener, 0)
+}
+export function isRemote(trans) {
+  let t = trans || Dexie.currentTransaction
+  while (t) {
+    if (t.__remote) return true
+    t = t.parent
+  }
+  return false
+}
+export function tombKey(table, key) {
+  return table + '|' + JSON.stringify(key)
+}
+const tracked = (name, key) => name !== 'settings' || SYNC_SETTINGS.includes(key)
+
+for (const name of SYNC_TABLES) {
+  const table = db.table(name)
+  table.hook('creating', function (primKey, obj, trans) {
+    let key
+    if (AUTO_ID.includes(name) && primKey === undefined && obj.id === undefined) key = newId()
+    if (isRemote(trans)) return key
+    if (!tracked(name, name === 'settings' ? obj.key : primKey)) return key
+    obj._mt = Date.now()
+    obj._rs = 0
+    ping()
+    return key
+  })
+  table.hook('updating', function (mods, primKey, obj, trans) {
+    if (isRemote(trans) || !tracked(name, primKey)) return
+    ping()
+    return { _mt: Date.now(), _rs: 0 }
+  })
+  table.hook('deleting', function (primKey, obj, trans) {
+    if (isRemote(trans) || !tracked(name, primKey) || !trackDeletes) return
+    const now = Date.now()
+    this.onsuccess = () => {
+      Dexie.ignoreTransaction(() => db.tombstones.put({ k: tombKey(name, primKey), table: name, key: primKey, _mt: now, _rs: 0 })).catch(() => {})
+      ping()
+    }
+  })
+}
+
 export const EXPENSE_CATEGORIES = ['Rent', 'Salaries', 'Medicines & supplies', 'Electricity & utilities', 'Equipment', 'Maintenance', 'Marketing', 'Other']
 export const EXPENSE_MODES = ['Cash', 'UPI', 'Card', 'Bank']
 
@@ -104,14 +181,27 @@ export async function getProfile() {
   }
 }
 
+function numberIn(text, re) {
+  const m = re.exec(text || '')
+  return m ? Number(m[1]) : 0
+}
+
 export async function nextPatientCode() {
-  const counter = (await getSetting('patientCounter', 0)) + 1
+  let top = await getSetting('patientCounter', 0)
+  await db.patients.each(p => {
+    top = Math.max(top, numberIn(p.code, /^GMC-(\d+)$/))
+  })
+  const counter = top + 1
   await setSetting('patientCounter', counter)
   return 'GMC-' + String(counter).padStart(4, '0')
 }
 
 async function nextReceiptNo() {
-  const counter = (await getSetting('receiptCounter', 0)) + 1
+  let top = await getSetting('receiptCounter', 0)
+  await db.visits.each(v => {
+    if (v.receiptNo) top = Math.max(top, numberIn(v.receiptNo, /^GMC\/R\/(\d+)$/))
+  })
+  const counter = top + 1
   await setSetting('receiptCounter', counter)
   return 'GMC/R/' + String(counter).padStart(5, '0')
 }

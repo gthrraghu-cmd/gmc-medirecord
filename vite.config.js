@@ -2,11 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: './',
   plugins: [
     react(),
-    VitePWA({
+    mode !== 'desktop' && VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/favicon.png', 'icons/apple-touch-icon.png', 'icons/crest.png'],
       manifest: {
@@ -32,4 +32,4 @@ export default defineConfig({
       }
     })
   ]
-})
+}))

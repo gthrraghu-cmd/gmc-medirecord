@@ -17,6 +17,7 @@ import { getProfile } from './lib/db.js'
 import { LangProvider, useT } from './lib/i18n.jsx'
 import { getThemePref, resolveTheme, setThemePref } from './lib/theme.js'
 import { runAutoBackup } from './lib/autobackup.js'
+import { startSync, stopSync } from './lib/sync.js'
 import { FolderSync, X } from 'lucide-react'
 
 function typingIn(el) {
@@ -39,6 +40,12 @@ function Main() {
   useEffect(() => {
     getProfile().then(setProfile)
   }, [])
+
+  useEffect(() => {
+    if (!unlocked) return
+    startSync()
+    return () => stopSync()
+  }, [unlocked])
 
   const go = useCallback(v => {
     setView(v)

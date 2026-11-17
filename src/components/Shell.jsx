@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { LayoutDashboard, Users, CalendarClock, Settings, Lock, UserPlus, WifiOff, IndianRupee, CalendarDays, BarChart3, Search, Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Crest } from './ui.jsx'
+import { SyncBadge } from './SyncCard.jsx'
 import { useT } from '../lib/i18n.jsx'
 import { getThemePref, resolveTheme, setThemePref } from '../lib/theme.js'
 
@@ -88,6 +89,7 @@ export default function Shell({ view, go, onLock, onNewPatient, onSearch, clinic
             {online ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" /> : <WifiOff size={12} />}
             {t('shell.offline')}
           </div>
+          <SyncBadge />
           <button onClick={onLock} className="btn-ghost w-full">
             <Lock size={16} /> {t('action.lock')}
           </button>
@@ -101,6 +103,7 @@ export default function Shell({ view, go, onLock, onNewPatient, onSearch, clinic
             <div>
               <p className="font-display text-xl font-bold leading-none gold-text">Gayathri</p>
               <p className="text-[9px] font-semibold uppercase tracking-[.22em] text-gold-400/70">MediRecord</p>
+              <div className="mt-1 max-w-[9rem]"><SyncBadge compact /></div>
             </div>
           </div>
           <div className="flex items-center gap-2">
