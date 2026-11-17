@@ -1,0 +1,173 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+html[data-theme='dark'] {
+  --night-950: 13 2 23;
+  --night-900: 18 3 31;
+  --night-850: 23 5 40;
+  --night-800: 28 6 48;
+  --night-700: 38 10 64;
+  --night-600: 51 17 85;
+  --royal-500: 123 44 191;
+  --royal-400: 157 78 221;
+  --royal-300: 192 132 252;
+  --gold-600: 184 134 11;
+  --gold-500: 212 165 55;
+  --gold-400: 230 192 104;
+  --gold-300: 243 220 155;
+  --gold-200: 250 240 207;
+  --gold-grad: linear-gradient(120deg, #f3dc9b 0%, #d4a537 45%, #fff3c4 60%, #b8860b 100%);
+  --page-glow: radial-gradient(1200px 600px at 85% -10%, rgba(123,44,191,.28), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(212,165,55,.10), transparent 60%);
+  --dept-homoeopathy: #9085e9;
+  --dept-acupuncture: #c98500;
+  --dept-cosmetology: #dd6496;
+  --dept-general: #0f7f5a;
+  --series-gold: #d4a537;
+  --series-rev: #c98500;
+  --series-exp: #3987e5;
+  --chart-grid: rgba(250,240,207,.08);
+  --chart-surface: #1c0630;
+  --good: #34d399;
+  --bad: #fb7185;
+  color-scheme: dark;
+}
+
+html[data-theme='light'] {
+  --night-950: 241 233 218;
+  --night-900: 248 243 234;
+  --night-850: 255 251 243;
+  --night-800: 255 255 255;
+  --night-700: 245 237 222;
+  --night-600: 234 222 198;
+  --royal-500: 106 31 176;
+  --royal-400: 123 44 191;
+  --royal-300: 157 78 221;
+  --gold-600: 138 101 8;
+  --gold-500: 184 134 11;
+  --gold-400: 150 101 0;
+  --gold-300: 122 78 0;
+  --gold-200: 42 10 61;
+  --gold-grad: linear-gradient(120deg, #6b3f0a 0%, #a87200 40%, #4a1470 75%, #8a5a00 100%);
+  --page-glow: radial-gradient(1100px 560px at 85% -10%, rgba(157,78,221,.14), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(212,165,55,.16), transparent 60%);
+  --dept-homoeopathy: #6250d6;
+  --dept-acupuncture: #b07800;
+  --dept-cosmetology: #cc4a80;
+  --dept-general: #0f7f5a;
+  --series-gold: #b07800;
+  --series-rev: #b07800;
+  --series-exp: #2a78d6;
+  --chart-grid: rgba(42,10,61,.08);
+  --chart-surface: #ffffff;
+  --good: #067647;
+  --bad: #b42318;
+  color-scheme: light;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-night-900 text-gold-200/90 font-sans antialiased;
+    background-image: var(--page-glow);
+    background-attachment: fixed;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color .3s ease, color .3s ease;
+  }
+  .font-display { font-variant-numeric: lining-nums tabular-nums; }
+  ::selection { background: rgba(212,165,55,.35); color: #fff; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgb(var(--gold-500) / .25); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+  kbd {
+    @apply inline-grid min-w-[1.6em] place-items-center rounded-md border border-gold-500/30 bg-night-700/70 px-1.5 py-0.5 font-sans text-[10px] font-bold text-gold-300;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply rounded-2xl border border-gold-500/15 bg-night-800/70 backdrop-blur-xl shadow-glow;
+  }
+  .gold-text {
+    background: var(--gold-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hairline {
+    background: linear-gradient(90deg, transparent, rgb(var(--gold-500) / .55), transparent);
+    height: 1px;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-gold {
+    @apply btn text-ink shadow-gold;
+    background: linear-gradient(135deg, #f3dc9b, #d4a537 55%, #b8860b);
+  }
+  .btn-gold:hover { filter: brightness(1.08); }
+  .gold-fill { background: linear-gradient(135deg, #f3dc9b, #d4a537 55%, #b8860b); }
+  .btn-ghost {
+    @apply btn border border-gold-500/25 bg-night-700/60 text-gold-300 hover:bg-night-600/70 hover:border-gold-500/45;
+  }
+  .btn-danger {
+    @apply btn border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20;
+  }
+  .input {
+    @apply w-full rounded-xl border border-gold-500/15 bg-night-950/60 px-3.5 py-2.5 text-sm text-gold-200 placeholder:text-gold-200/30 outline-none transition focus:border-gold-400/60 focus:ring-2 focus:ring-gold-500/20;
+  }
+  .label {
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[.14em] text-gold-400/80;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide;
+  }
+}
+
+html[data-theme='light'] .glass { box-shadow: 0 0 0 1px rgb(var(--gold-500) / .22), 0 18px 40px -24px rgba(74,20,112,.35); }
+html[data-theme='light'] [class^='text-rose-'], html[data-theme='light'] [class*=' text-rose-'], html[data-theme='light'] [class*='hover:text-rose-']:hover { color: #b42318 !important; }
+html[data-theme='light'] [class^='text-emerald-'], html[data-theme='light'] [class*=' text-emerald-'] { color: #067647 !important; }
+html[data-theme='light'] [class^='text-amber-'], html[data-theme='light'] [class*=' text-amber-'] { color: #93370d !important; }
+html[data-theme='light'] [class^='text-sky-'], html[data-theme='light'] [class*=' text-sky-'] { color: #175cd3 !important; }
+html[data-theme='light'] [class^='text-violet-'], html[data-theme='light'] [class*=' text-violet-'] { color: #5b21b6 !important; }
+html[data-theme='light'] [class^='text-pink-'], html[data-theme='light'] [class*=' text-pink-'] { color: #a3165c !important; }
+
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+
+.paper {
+  width: 148mm;
+  min-height: 210mm;
+  padding: 9mm 10mm 7mm;
+  background: #fff;
+  color: #2a0a3d;
+  display: flex;
+  flex-direction: column;
+  font-family: Manrope, system-ui, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.paper-a4 {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm 14mm 10mm;
+  page: a4;
+}
+
+@media screen {
+  .print-root { display: none; }
+}
+
+@page a4 { size: A4 portrait; margin: 0; }
+
+@page { size: A5 portrait; margin: 0; }
+
+@media print {
+  html, body { background: #fff !important; height: auto; }
+  body { background-image: none !important; }
+  #root { display: none !important; }
+  [data-modal-open] { display: none !important; }
+  .print-root { display: block; }
+  .paper { min-height: 209mm; box-shadow: none; }
+  .paper-a4 { min-height: 296mm; }
+  .no-print { display: none !important; }
+}
