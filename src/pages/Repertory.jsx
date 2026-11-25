@@ -5,7 +5,7 @@ import { PageHeader, Field, useToast, Empty, Modal } from '../components/ui.jsx'
 import PatientPicker from '../components/PatientPicker.jsx'
 import { db, saveRepertorisation, deleteRepertorisation } from '../lib/db.js'
 import { todayISO } from '../lib/format.js'
-import { loadRepertory, repertorise, sortResults } from '../lib/repertory.js'
+import { loadRepertory, repertorise, sortResults, findingsText } from '../lib/repertory.js'
 import { BarList } from '../components/charts.jsx'
 
 const work = { picked: [], patientId: null, note: '', editingId: null, visit: null }
@@ -199,8 +199,7 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
         prescribed: prescribed ? { abbrev: prescribed.abbrev, name: prescribed.name } : null
       })
       const visitId = forVisit?.id || null
-      const rubricLines = picked.map((p, i) => `${i + 1}. ${rubricLabel(p.path)}${prescribed && prescribed.grades ? (prescribed.grades[i] ? ` (grade ${prescribed.grades[i]})` : ' (not covered)') : ''}`)
-      const findings = ['Repertorisation rubrics:', ...rubricLines].join('\n')
+      const findings = findingsText(picked, prescribed)
       clear()
       if (prescribed) {
         toast(`Repertorisation saved · prescribing ${prescribed.name}`)

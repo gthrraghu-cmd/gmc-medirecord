@@ -4,7 +4,7 @@ import { Plus, Trash2, Package, BookMarked, BookmarkPlus } from 'lucide-react'
 import { Field, Modal, useToast } from '../components/ui.jsx'
 import RemedyInput from '../components/RemedyInput.jsx'
 import ComplaintRepertory from '../components/ComplaintRepertory.jsx'
-import { rubricLabel } from './Repertory.jsx'
+import { findingsText } from '../lib/repertory.js'
 import { TemplatePicker, SaveTemplateModal } from '../components/Templates.jsx'
 import { db, DEPARTMENTS, saveVisit, bumpTemplate } from '../lib/db.js'
 import { addDaysISO, todayISO } from '../lib/format.js'
@@ -57,6 +57,7 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
         if (!cur.includes(preset.findings)) base.findings = cur ? `${cur}\n\n${preset.findings}` : preset.findings
       }
       setF(base)
+      setRepChosen([])
       setActiveRow(0)
     }
   }, [open, visit, patient, preset])
@@ -79,12 +80,17 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
   const deptPackages = useMemo(() => packages.filter(p => p.department === f.department), [packages, f.department])
 
   const set = k => e => setF(s => ({ ...s, [k]: e.target.value }))
+  const [repChosen, setRepChosen] = useState([])
+
   const useRepertory = (remedy, rubrics) => {
-    const block = ['Repertorisation rubrics:', ...rubrics.map((p, i) => `${i + 1}. ${rubricLabel(p.path)}${remedy.grades[i] ? ` (grade ${remedy.grades[i]})` : ' (not covered)'}`)].join('\n')
+    const sameRubrics = repChosen.length && repChosen[0].key === rubrics.map(r => r.id).join(',')
+    const chosen = (sameRubrics ? repChosen : []).filter(r => r.idx !== remedy.idx).concat({ ...remedy, key: rubrics.map(r => r.id).join(',') })
+    setRepChosen(chosen)
+    const block = findingsText(rubrics, chosen)
     setF(s => {
       const rx = s.rx.filter(r => (r.medicine || '').trim())
       if (!rx.some(r => r.medicine.trim().toLowerCase() === remedy.name.toLowerCase())) rx.push({ ...RX, medicine: remedy.name })
-      const cur = String(s.findings || '').replace(/\n*Repertorisation rubrics:[\s\S]*$/, '').trim()
+      const cur = String(s.findings || '').replace(/(^|\n)[^\n]*\n?Repertorisation rubrics:[\s\S]*$/, '').trim()
       return { ...s, rx, findings: cur ? `${cur}\n\n${block}` : block }
     })
     toast(`${remedy.name} added to the prescription`)

@@ -168,3 +168,18 @@ export function sortResults(list, by) {
   else copy.sort((a, b) => b.count - a.count || b.score - a.score || a.abbrev.localeCompare(b.abbrev))
   return copy
 }
+
+export function findingsText(rubrics, chosen) {
+  const list = (Array.isArray(chosen) ? chosen : [chosen]).filter(Boolean)
+  const label = p => String(p || '').split(', ').join(' - ')
+  const lines = []
+  if (list.length) lines.push(list.map(r => r.abbrev.replace(/\.$/, '').toUpperCase()).join(', '))
+  lines.push('Repertorisation rubrics:')
+  rubrics.forEach((p, i) => {
+    let mark = ''
+    if (list.length === 1) mark = list[0].grades?.[i] ? ` (grade ${list[0].grades[i]})` : ' (not covered)'
+    else if (list.length > 1) mark = ` (${list.map(r => `${r.abbrev.replace(/\.$/, '').toUpperCase()} ${r.grades?.[i] || '-'}`).join(', ')})`
+    lines.push(`${i + 1}. ${label(p.path)}${mark}`)
+  })
+  return lines.join('\n')
+}
