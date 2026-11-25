@@ -1,8 +1,7 @@
 import { useSyncExternalStore } from 'react'
-import { db, SYNC_TABLES, SYNC_SETTINGS, PIN_KEYS, onLocalChange, setTrackDeletes, tombKey, getSetting, setSetting } from './db.js'
+import { db, SYNC_TABLES, SYNC_SETTINGS, onLocalChange, setTrackDeletes, tombKey, getSetting, setSetting } from './db.js'
 import { deriveSyncKey, randomSalt, sealText, openText } from './crypto.js'
 import { blobToDataURL, dataURLToBlob } from './image.js'
-import { pgBridge } from './bridge.js'
 import { SyncError, normaliseUrl, signIn, refreshSession, upsertRows, fetchMeta, fetchPage } from './syncRemote.js'
 
 const CFG = 'syncCfg'
@@ -39,7 +38,6 @@ let running = null
 let again = false
 let loop = null
 let debounce = null
-let retry = null
 let started = false
 
 async function loadCfg() {
@@ -171,8 +169,8 @@ const cloudBackend = {
 }
 
 function pgApi() {
-  const api = pgBridge()
-  if (!api) throw new SyncError('PostgreSQL works only in the app opened from this laptop.', 'server')
+  const api = typeof window !== 'undefined' && window.gmcDesktop && window.gmcDesktop.pg
+  if (!api) throw new SyncError('PostgreSQL works only in the installed desktop app.', 'server')
   return api
 }
 
@@ -336,13 +334,7 @@ async function cycle() {
     await setSetting(LAST, now)
     emit({ phase: 'idle', lastSync: now, message: '', pending: await countPending(), pulled, pushed })
   } catch (err) {
-    if (err instanceof SyncError && err.kind === 'offline') {
-      emit({ phase: 'offline', message: err.message, pending: await countPending() })
-      if (started && cfg.mode === 'postgres') {
-        clearTimeout(retry)
-        retry = setTimeout(() => syncNow(), 5000)
-      }
-    }
+    if (err instanceof SyncError && err.kind === 'offline') emit({ phase: 'offline', message: err.message, pending: await countPending() })
     else {
       if (err instanceof SyncError && err.kind === 'auth') session = null
       emit({ phase: 'error', message: err.message || 'Sync failed', pending: await countPending() })
@@ -402,7 +394,6 @@ export function stopSync() {
   document.removeEventListener('visibilitychange', onVisible)
   clearInterval(loop)
   clearTimeout(debounce)
-  clearTimeout(retry)
 }
 
 async function connect({ url, anonKey, email, password }) {
@@ -455,7 +446,7 @@ export async function joinDevice(form) {
   if (!ok) throw new Error('Wrong sync passphrase.')
   await remoteTx(async () => {
     for (const name of SYNC_TABLES) {
-      if (name === 'settings') await db.settings.where('key').anyOf(SYNC_SETTINGS.filter(k => !PIN_KEYS.includes(k))).delete()
+      if (name === 'settings') await db.settings.where('key').anyOf(SYNC_SETTINGS).delete()
       else await db.table(name).clear()
     }
     await db.tombstones.clear()
@@ -479,7 +470,7 @@ async function markAllDirty() {
 }
 
 export function desktopPostgresAvailable() {
-  return !!pgBridge()
+  return typeof window !== 'undefined' && !!(window.gmcDesktop && window.gmcDesktop.pg)
 }
 
 export async function connectPostgres(form) {
@@ -496,46 +487,9 @@ export async function connectPostgres(form) {
   return { info, state }
 }
 
-function pause(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-export async function bootstrapPostgres() {
-  const api = pgBridge()
-  if (!api) return 'none'
-  let info = null
-  for (let attempt = 0; attempt < 15; attempt++) {
-    let r
-    try {
-      r = await api.status()
-    } catch {
-      r = null
-    }
-    if (r && r.ok) {
-      info = r.data
-      break
-    }
-    if (!(r && r.offline)) break
-    emit({ phase: 'offline', message: 'Waiting for the MediRecord server to start…' })
-    await pause(2000)
-  }
-  if (!info) return 'unconfigured'
-  const existing = await loadCfg()
-  if (existing && existing.mode !== 'postgres') return 'other'
-  if (!existing) {
-    const local = (await db.patients.count()) + (await db.visits.count())
-    if (local) await markAllDirty()
-    await setSetting(CURSOR, null)
-    await setSetting(CFG, { mode: 'postgres', host: info.host, port: info.port, user: info.user, database: info.database, deviceId: deviceName() + '-' + Math.random().toString(36).slice(2, 8) })
-  }
-  setTrackDeletes(true)
-  await Promise.race([syncNow(), pause(20000)])
-  return existing ? 'ready' : 'adopted'
-}
-
 export async function disconnectSync() {
   const cfg = await loadCfg()
-  if (cfg?.mode === 'postgres' && desktopPostgresAvailable()) await pgBridge().forget()
+  if (cfg?.mode === 'postgres' && desktopPostgresAvailable()) await window.gmcDesktop.pg.forget()
   stopSync()
   session = null
   cryptoKey = null

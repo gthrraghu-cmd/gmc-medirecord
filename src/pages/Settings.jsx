@@ -9,7 +9,6 @@ import AutoBackupCard from '../components/AutoBackupCard.jsx'
 import SyncCard from '../components/SyncCard.jsx'
 import PostgresCard from '../components/PostgresCard.jsx'
 import { desktopPostgresAvailable } from '../lib/sync.js'
-import { runtimeKind } from '../lib/bridge.js'
 import { TemplatesCard } from '../components/Templates.jsx'
 import { useT } from '../lib/i18n.jsx'
 import { getThemePref, setThemePref } from '../lib/theme.js'
@@ -264,10 +263,10 @@ export default function Settings({ onProfileChange }) {
           </form>
         </Card>
 
-        {runtimeKind() !== 'web' ? (
-          <Card icon={MonitorSmartphone} title={tx('Desktop app')} text={runtimeKind() === 'server' ? tx('Running from the local server on this laptop · works fully offline') : tx('Installed on this computer · works fully offline')}>
+        {typeof window !== 'undefined' && window.gmcDesktop ? (
+          <Card icon={MonitorSmartphone} title={tx('Desktop app')} text={tx('Installed on this computer · works fully offline')}>
             <p className="text-sm text-gold-200/70">Records are kept inside this Windows user account and, once connected, saved into your PostgreSQL database. Keep automatic daily backup on as well so an encrypted copy is always in a folder you choose.</p>
-            <p className="mt-2 text-xs text-gold-200/45">{runtimeKind() === 'server' ? 'Open it any time from the Gayathri MediRecord icon in the Start menu or taskbar.' : 'Zoom: Ctrl + / Ctrl − / Ctrl 0'}</p>
+            <p className="mt-2 text-xs text-gold-200/45">Zoom: Ctrl + / Ctrl − / Ctrl 0</p>
           </Card>
         ) : (
         <Card icon={MonitorSmartphone} title={tx('Install as an app')} text={tx('One-time setup per device; works offline afterwards')}>
