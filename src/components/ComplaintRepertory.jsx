@@ -45,7 +45,7 @@ export default function ComplaintRepertory({ text, onUse }) {
   }, [rep, lines, choice, skip])
 
   const rubrics = useMemo(() => matches.filter(m => m.picked && !m.off).map(m => ({ id: m.picked.id, path: m.picked.path, intensity: 1 })), [matches])
-  const results = useMemo(() => (rep && rubrics.length ? sortResults(repertorise(rep, rubrics), 'coverage').slice(0, 8) : []), [rep, rubrics])
+  const results = useMemo(() => (rep && rubrics.length ? sortResults(repertorise(rep, rubrics), 'coverage') : []), [rep, rubrics])
 
   if (!lines.length) return null
 
@@ -77,12 +77,12 @@ export default function ComplaintRepertory({ text, onUse }) {
           </ul>
           {results.length > 0 && (
             <div className="mt-3">
-              <p className="mb-1.5 text-[11px] text-gold-200/50">Tap a remedy to add it to the prescription and the rubrics to findings · ⓘ shows why</p>
-              <div className="flex flex-wrap gap-1.5">
+              <p className="mb-1.5 text-[11px] text-gold-200/50"><span className="font-semibold text-gold-200/80">{results.length} remedies</span> · best first · tap a remedy to add it to the prescription and the rubrics to findings · ⓘ shows why</p>
+              <div className="flex max-h-72 flex-wrap gap-1.5 overflow-y-auto pr-1">
                 {results.map((r, i) => (
                   <span key={r.idx} className={`flex items-center overflow-hidden rounded-lg border text-xs ${i === 0 ? 'border-gold-400/60 bg-gold-500/15' : 'border-gold-500/20'}`}>
                     <button type="button" onClick={() => onUse(r, rubrics)} className="flex items-center gap-1 px-2 py-1 text-gold-200 hover:bg-gold-500/15" title={`Add ${r.name}`}>
-                      <Plus size={12} /> <span className={i < 3 ? 'font-bold' : ''}>{r.abbrev}</span> <span className="text-gold-200/50">{r.count}/{rubrics.length} · {r.score}</span>
+                      <Plus size={12} /> <span className={r.grades.every(g => g === 3) || i < 3 ? 'font-bold' : ''}>{r.abbrev}</span> <span className="text-gold-200/50">{r.count}/{rubrics.length} · {r.score}</span>
                     </button>
                     <button type="button" onClick={() => setWhy(r)} className="border-l border-gold-500/20 px-1.5 py-1 text-gold-400/70 hover:bg-gold-500/15 hover:text-gold-200" aria-label={`Why ${r.abbrev}`}><Info size={12} /></button>
                   </span>
