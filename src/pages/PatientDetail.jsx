@@ -10,6 +10,7 @@ import { RxSheet, ReceiptSheet } from '../components/PrintSheets.jsx'
 import DocPreview from '../components/DocPreview.jsx'
 import MarkPaid from '../components/MarkPaid.jsx'
 import CaseSheet from '../components/patient/CaseSheet.jsx'
+import { Repertorisations } from './Repertory.jsx'
 import Packages from '../components/patient/Packages.jsx'
 import Photos from '../components/patient/Photos.jsx'
 import Documents from '../components/patient/Documents.jsx'
@@ -164,7 +165,7 @@ export default function PatientDetail({ id, go, profile }) {
         ))}
       </div>
 
-      {tab === 'case' && <div className="mt-5"><CaseSheet patient={patient} profile={profile} /></div>}
+      {tab === 'case' && <div className="mt-5"><CaseSheet patient={patient} profile={profile} /><Repertorisations patientId={patient.id} go={go} /></div>}
       {tab === 'packages' && <div className="mt-5"><Packages patient={patient} /></div>}
       {tab === 'photos' && <div className="mt-5"><Photos patient={patient} /></div>}
       {tab === 'docs' && <div className="mt-5"><Documents patient={patient} /></div>}

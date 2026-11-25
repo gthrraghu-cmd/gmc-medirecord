@@ -4,6 +4,7 @@ const path = require('path')
 const os = require('os')
 const { spawn } = require('child_process')
 const readline = require('readline')
+const zlib = require('zlib')
 const createPg = require('./pgcore.cjs')
 
 const PORT = Number(process.env.GMC_PORT) || 4747
@@ -110,7 +111,18 @@ function serveFile(req, res, pathname) {
   if (!fs.existsSync(file)) return send(res, 500, 'The app is not built yet. Run: npm run build', TYPES['.txt'])
   const ext = path.extname(file).toLowerCase()
   const cache = /\/assets\//.test(file.replace(/\\/g, '/')) ? 'public, max-age=31536000, immutable' : 'no-cache'
-  res.writeHead(200, { 'Content-Type': TYPES[ext] || 'application/octet-stream', 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' })
+  const headers = { 'Content-Type': TYPES[ext] || 'application/octet-stream', 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff' }
+  const gzip = /\bgzip\b/.test(String(req.headers['accept-encoding'] || '')) && ['.txt', '.js', '.css', '.html', '.json', '.svg'].includes(ext)
+  if (gzip) {
+    headers['Content-Encoding'] = 'gzip'
+    headers.Vary = 'Accept-Encoding'
+    res.writeHead(200, headers)
+    if (req.method === 'HEAD') return res.end()
+    fs.createReadStream(file).pipe(zlib.createGzip({ level: 6 })).pipe(res)
+    return
+  }
+  res.writeHead(200, headers)
+  if (req.method === 'HEAD') return res.end()
   fs.createReadStream(file).pipe(res)
 }
 

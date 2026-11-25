@@ -8,6 +8,7 @@ const EN = {
   'nav.followups': 'Follow-ups',
   'nav.billing': 'Billing',
   'nav.reports': 'Reports',
+  'nav.repertory': 'Repertory',
   'nav.settings': 'Settings',
   'action.newPatient': 'New Patient',
   'action.lock': 'Lock',

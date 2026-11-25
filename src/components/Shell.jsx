@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Users, CalendarClock, Settings, Lock, UserPlus, WifiOff, IndianRupee, CalendarDays, BarChart3, Search, Sun, Moon } from 'lucide-react'
+import { BookOpenCheck, LayoutDashboard, Users, CalendarClock, Settings, Lock, UserPlus, WifiOff, IndianRupee, CalendarDays, BarChart3, Search, Sun, Moon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Crest } from './ui.jsx'
 import { SyncBadge } from './SyncCard.jsx'
@@ -13,6 +13,7 @@ export const NAV = [
   { key: 'followups', label: 'nav.followups', icon: CalendarClock, mobile: true },
   { key: 'billing', label: 'nav.billing', icon: IndianRupee, mobile: true },
   { key: 'reports', label: 'nav.reports', icon: BarChart3, mobile: false },
+  { key: 'repertory', label: 'nav.repertory', icon: BookOpenCheck, mobile: false },
   { key: 'settings', label: 'nav.settings', icon: Settings, mobile: true }
 ]
 

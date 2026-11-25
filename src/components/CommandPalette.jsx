@@ -9,7 +9,7 @@ import { NAV } from './Shell.jsx'
 
 export const SHORTCUTS = [
   [['Ctrl', 'K'], 'Search patients & commands'],
-  [['Alt', '1–7'], 'Go to a section'],
+  [['Alt', '1–8'], 'Go to a section'],
   [['Alt', 'N'], 'New patient'],
   [['Alt', 'B'], 'Book appointment'],
   [['Alt', 'W'], 'Walk-in token'],

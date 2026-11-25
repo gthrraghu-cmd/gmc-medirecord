@@ -12,6 +12,7 @@ import Settings from './pages/Settings.jsx'
 import Billing from './pages/Billing.jsx'
 import Schedule from './pages/Schedule.jsx'
 import Reports from './pages/Reports.jsx'
+import Repertory from './pages/Repertory.jsx'
 import PatientForm from './pages/PatientForm.jsx'
 import { getProfile } from './lib/db.js'
 import { LangProvider, useT } from './lib/i18n.jsx'
@@ -165,7 +166,7 @@ function Main() {
   return (
     <Shell view={view} go={go} onLock={lock} onNewPatient={() => setNewOpen(true)} onSearch={() => setPaletteOpen(true)} clinicName={shortClinic}>
       <AnimatePresence mode="wait">
-        <motion.div key={view.name + (view.id || '')} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }}>
+        <motion.div key={view.name + (view.id || '') + (view.nonce || '')} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }}>
           {view.name === 'dashboard' && <Dashboard go={go} doctor={profile.doctor} />}
           {view.name === 'patients' && <Patients go={go} onNewPatient={() => setNewOpen(true)} />}
           {view.name === 'patient' && <PatientDetail id={view.id} go={go} profile={profile} />}
@@ -173,6 +174,7 @@ function Main() {
           {view.name === 'followups' && <FollowUps go={go} profile={profile} />}
           {view.name === 'billing' && <Billing go={go} profile={profile} />}
           {view.name === 'reports' && <Reports go={go} />}
+          {view.name === 'repertory' && <Repertory go={go} patientId={view.patientId} load={view.load} nonce={view.nonce} />}
           {view.name === 'settings' && <Settings onProfileChange={p => setProfile(s => ({ ...s, ...p }))} />}
         </motion.div>
       </AnimatePresence>

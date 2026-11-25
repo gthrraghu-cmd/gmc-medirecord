@@ -29,7 +29,14 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,html,png,woff,woff2,svg}'],
         globIgnores: ['**/gmc-runtime.js'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        navigateFallback: 'index.html'
+        navigateFallback: 'index.html',
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith('/repertory/publicum.txt'),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'gmc-repertory', expiration: { maxEntries: 2 } }
+          }
+        ]
       }
     })
   ]

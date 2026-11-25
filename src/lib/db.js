@@ -282,7 +282,28 @@ export async function getCase(patientId) {
 }
 
 export async function saveCase(patientId, data) {
-  await db.cases.put({ ...data, patientId, updatedAt: Date.now() })
+  await db.transaction('rw', db.cases, async () => {
+    const cur = await db.cases.get(patientId)
+    await db.cases.put({ ...data, repertorisations: cur?.repertorisations || [], patientId, updatedAt: Date.now() })
+  })
+}
+
+export async function saveRepertorisation(patientId, entry) {
+  return db.transaction('rw', db.cases, async () => {
+    const cur = (await db.cases.get(patientId)) || { patientId }
+    const list = (cur.repertorisations || []).filter(r => r.id !== entry.id)
+    const saved = { ...entry, id: entry.id || Date.now(), savedAt: Date.now() }
+    await db.cases.put({ ...cur, repertorisations: [saved, ...list], patientId, updatedAt: Date.now() })
+    return saved
+  })
+}
+
+export async function deleteRepertorisation(patientId, entryId) {
+  await db.transaction('rw', db.cases, async () => {
+    const cur = await db.cases.get(patientId)
+    if (!cur) return
+    await db.cases.put({ ...cur, repertorisations: (cur.repertorisations || []).filter(r => r.id !== entryId), updatedAt: Date.now() })
+  })
 }
 
 export async function savePackage(data) {
