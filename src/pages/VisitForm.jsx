@@ -48,8 +48,10 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
     if (open) {
       const base = visit ? { ...blank(patient), ...visit, rx: visit.rx?.length ? visit.rx : [{ ...RX }] } : blank(patient)
       if (preset?.medicine) {
-        const rx = base.rx.filter(r => (r.medicine || '').trim())
-        if (!rx.some(r => r.medicine.trim().toLowerCase() === preset.medicine.toLowerCase())) rx.push({ ...RX, medicine: preset.medicine })
+        const rx = base.rx.filter(r => (r.medicine || '').trim()).map(r => ({ ...r }))
+        const hit = rx.find(r => r.medicine.trim().toLowerCase() === preset.medicine.toLowerCase())
+        if (hit) hit.rubrics = preset.rubrics || hit.rubrics
+        else rx.push({ ...RX, medicine: preset.medicine, rubrics: preset.rubrics || '' })
         base.rx = rx.length ? rx : [{ ...RX }]
       }
       if (preset?.findings) {
@@ -87,9 +89,10 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
     const chosen = (sameRubrics ? repChosen : []).filter(r => r.idx !== remedy.idx).concat({ ...remedy, key: rubrics.map(r => r.id).join(',') })
     setRepChosen(chosen)
     const block = findingsText(rubrics, chosen)
+    const reason = rubrics.map((p, i) => (remedy.grades[i] ? `${p.path.split(', ').join(' - ')} (${remedy.grades[i]})` : null)).filter(Boolean).join('; ')
     setF(s => {
-      const rx = s.rx.filter(r => (r.medicine || '').trim())
-      if (!rx.some(r => r.medicine.trim().toLowerCase() === remedy.name.toLowerCase())) rx.push({ ...RX, medicine: remedy.name })
+      const rx = s.rx.filter(r => (r.medicine || '').trim()).map(r => (r.medicine.trim().toLowerCase() === remedy.name.toLowerCase() ? { ...r, rubrics: reason } : r))
+      if (!rx.some(r => r.medicine.trim().toLowerCase() === remedy.name.toLowerCase())) rx.push({ ...RX, medicine: remedy.name, rubrics: reason })
       const cur = String(s.findings || '').replace(/(^|\n)[^\n]*\n?Repertorisation rubrics:[\s\S]*$/, '').trim()
       return { ...s, rx, findings: cur ? `${cur}\n\n${block}` : block }
     })
@@ -208,6 +211,13 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
                   <input className="input col-span-4 sm:col-span-3" placeholder="4 pills TDS" value={r.dosage} onFocus={() => setActiveRow(i)} onChange={e => setRxVal(i, 'dosage', e.target.value)} />
                   <input className="input col-span-3 sm:col-span-2" placeholder="7 days" value={r.duration} onFocus={() => setActiveRow(i)} onChange={e => setRxVal(i, 'duration', e.target.value)} />
                   <button type="button" onClick={() => delRx(i)} className="col-span-1 grid place-items-center rounded-lg text-gold-200/40 hover:text-rose-300" aria-label={tx('Remove')}><Trash2 size={16} /></button>
+                  {r.rubrics && (
+                    <p className="col-span-12 flex items-start gap-1.5 px-1 text-[11.5px] leading-snug text-gold-200/65">
+                      <span className="shrink-0 font-semibold uppercase tracking-wider text-gold-400/80">Rubrics:</span>
+                      <span className="min-w-0 flex-1">{r.rubrics}</span>
+                      <button type="button" onClick={() => setRxVal(i, 'rubrics', '')} className="shrink-0 text-gold-300/40 hover:text-rose-300" aria-label="Remove rubrics note">×</button>
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

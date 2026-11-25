@@ -248,7 +248,7 @@ export default function PatientDetail({ id, go, profile, prescribe }) {
                           <tbody>
                             {v.rx.map((r, j) => (
                               <tr key={j} className="border-t border-gold-500/10">
-                                <td className="px-3 py-2 font-semibold text-gold-200">{r.medicine} <span className="text-gold-400">{r.potency}</span></td>
+                                <td className="px-3 py-2 font-semibold text-gold-200">{r.medicine} <span className="text-gold-400">{r.potency}</span>{r.rubrics && <span className="mt-0.5 block text-[11px] font-normal leading-snug text-gold-200/50">Rubrics: {r.rubrics}</span>}</td>
                                 <td className="px-3 py-2 text-gold-200/60">{r.dosage}</td>
                                 <td className="px-3 py-2 text-right text-gold-200/60">{r.duration}</td>
                               </tr>

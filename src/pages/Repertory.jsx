@@ -203,7 +203,7 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
       clear()
       if (prescribed) {
         toast(`Repertorisation saved · prescribing ${prescribed.name}`)
-        go({ name: 'patient', id: pid, prescribe: { medicine: prescribed.name, visitId, findings }, nonce: Date.now() })
+        go({ name: 'patient', id: pid, prescribe: { medicine: prescribed.name, visitId, findings, rubrics: picked.map((p, i) => (prescribed.grades?.[i] ? `${p.path.split(', ').join(' - ')} (${prescribed.grades[i]})` : null)).filter(Boolean).join('; ') }, nonce: Date.now() })
       } else toast(`Saved to ${patient?.name || 'patient'}'s case`)
     } catch (err) {
       toast(err.message || 'Could not save', 'err')
