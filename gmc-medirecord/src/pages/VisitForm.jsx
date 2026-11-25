@@ -50,6 +50,10 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
         if (!rx.some(r => r.medicine.trim().toLowerCase() === preset.medicine.toLowerCase())) rx.push({ ...RX, medicine: preset.medicine })
         base.rx = rx.length ? rx : [{ ...RX }]
       }
+      if (preset?.findings) {
+        const cur = String(base.findings || '').trim()
+        if (!cur.includes(preset.findings)) base.findings = cur ? `${cur}\n\n${preset.findings}` : preset.findings
+      }
       setF(base)
       setActiveRow(0)
     }

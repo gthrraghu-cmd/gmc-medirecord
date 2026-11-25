@@ -3,6 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Trash2, Package, BookMarked, BookmarkPlus } from 'lucide-react'
 import { Field, Modal, useToast } from '../components/ui.jsx'
 import RemedyInput from '../components/RemedyInput.jsx'
+import ComplaintRepertory from '../components/ComplaintRepertory.jsx'
+import { rubricLabel } from './Repertory.jsx'
 import { TemplatePicker, SaveTemplateModal } from '../components/Templates.jsx'
 import { db, DEPARTMENTS, saveVisit, bumpTemplate } from '../lib/db.js'
 import { addDaysISO, todayISO } from '../lib/format.js'
@@ -50,6 +52,10 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
         if (!rx.some(r => r.medicine.trim().toLowerCase() === preset.medicine.toLowerCase())) rx.push({ ...RX, medicine: preset.medicine })
         base.rx = rx.length ? rx : [{ ...RX }]
       }
+      if (preset?.findings) {
+        const cur = String(base.findings || '').trim()
+        if (!cur.includes(preset.findings)) base.findings = cur ? `${cur}\n\n${preset.findings}` : preset.findings
+      }
       setF(base)
       setActiveRow(0)
     }
@@ -73,6 +79,17 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
   const deptPackages = useMemo(() => packages.filter(p => p.department === f.department), [packages, f.department])
 
   const set = k => e => setF(s => ({ ...s, [k]: e.target.value }))
+  const useRepertory = (remedy, rubrics) => {
+    const block = ['Repertorisation rubrics:', ...rubrics.map((p, i) => `${i + 1}. ${rubricLabel(p.path)}${remedy.grades[i] ? ` (grade ${remedy.grades[i]})` : ' (not covered)'}`)].join('\n')
+    setF(s => {
+      const rx = s.rx.filter(r => (r.medicine || '').trim())
+      if (!rx.some(r => r.medicine.trim().toLowerCase() === remedy.name.toLowerCase())) rx.push({ ...RX, medicine: remedy.name })
+      const cur = String(s.findings || '').replace(/\n*Repertorisation rubrics:[\s\S]*$/, '').trim()
+      return { ...s, rx, findings: cur ? `${cur}\n\n${block}` : block }
+    })
+    toast(`${remedy.name} added to the prescription`)
+  }
+
   const setRxVal = (i, k, val) => setF(s => ({ ...s, rx: s.rx.map((r, j) => (j === i ? { ...r, [k]: val } : r)) }))
   const addRx = () => {
     setF(s => ({ ...s, rx: [...s.rx, { ...RX }] }))
@@ -161,6 +178,7 @@ export default function VisitForm({ open, onClose, patient, visit, preset }) {
         <section className="grid gap-4 sm:grid-cols-2">
           <Field label={tx('Chief complaints *')} className="sm:col-span-2">
             <textarea rows="2" className="input" value={f.complaints} onChange={set('complaints')} placeholder={tx('Symptoms, duration, modalities…')} />
+            {f.department === 'Homoeopathy' && <ComplaintRepertory text={f.complaints} onUse={useRepertory} />}
           </Field>
           <Field label={tx('Findings')}>
             <textarea rows="2" className="input" value={f.findings} onChange={set('findings')} />

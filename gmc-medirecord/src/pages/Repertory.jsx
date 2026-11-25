@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BookOpenCheck, ChevronRight, ChevronDown, ListPlus, Loader2, Plus, Save, Search, Trash2, X, ArrowLeft, Check, ExternalLink, Filter, Microscope, Pill } from 'lucide-react'
-import { PageHeader, Field, useToast, Empty } from '../components/ui.jsx'
+import { BookOpenCheck, ChevronRight, ChevronDown, ListPlus, Loader2, Plus, Save, Search, Trash2, X, ArrowLeft, Check, ExternalLink, Filter, Microscope, Pill, Info } from 'lucide-react'
+import { PageHeader, Field, useToast, Empty, Modal } from '../components/ui.jsx'
 import PatientPicker from '../components/PatientPicker.jsx'
 import { db, saveRepertorisation, deleteRepertorisation } from '../lib/db.js'
 import { todayISO } from '../lib/format.js'
@@ -50,6 +50,53 @@ function RubricRow({ r, added, onOpen, onAdd }) {
   )
 }
 
+export function rubricLabel(path) {
+  return String(path || '').split(', ').join(' - ')
+}
+
+export function RemedyDialog({ remedy, rubrics, onClose, action }) {
+  const open = !!remedy
+  const covered = open ? rubrics.map((p, i) => ({ p, i, g: remedy.grades?.[i] || 0 })).filter(x => x.g) : []
+  const missing = open ? rubrics.map((p, i) => ({ p, i, g: remedy.grades?.[i] || 0 })).filter(x => !x.g) : []
+  return (
+    <Modal open={open} onClose={onClose} title={open ? `${remedy.abbrev} · ${remedy.name}` : ''} subtitle={open ? `Chosen for ${covered.length} of ${rubrics.length} rubrics · score ${remedy.score}` : ''}>
+      {open && (
+        <div className="space-y-4">
+          <div>
+            <p className="label">Found in these rubrics</p>
+            <ul className="space-y-1.5">
+              {covered.map(({ p, i, g }) => (
+                <li key={i} className="flex items-start gap-2 text-[14px] leading-snug">
+                  <span className="w-5 shrink-0 text-right text-gold-200/40">{i + 1}.</span>
+                  <span className="min-w-0 flex-1 font-medium text-gold-100">{rubricLabel(p.path)}</span>
+                  <span className={`shrink-0 rounded-md px-1.5 text-[11px] font-bold ${g === 3 ? 'gold-fill text-ink' : g === 2 ? 'border border-gold-400/50 text-gold-200' : 'border border-gold-500/25 text-gold-200/70'}`}>grade {g}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {missing.length > 0 && (
+            <div>
+              <p className="label text-rose-200/80">Not in these rubrics</p>
+              <ul className="space-y-1.5">
+                {missing.map(({ p, i }) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px] text-rose-200/70">
+                    <span className="w-5 shrink-0 text-right text-rose-200/40">{i + 1}.</span>
+                    <span className="min-w-0 flex-1">{rubricLabel(p.path)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gold-500/10 pt-4">
+            {action}
+            <button onClick={onClose} className="btn-ghost">OK</button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
 export default function Repertory({ go, patientId, visit, load, nonce }) {
   const toast = useToast()
   const [rep, setRep] = useState(null)
@@ -65,6 +112,7 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
   const [sortBy, setSortBy] = useState('coverage')
   const [busy, setBusy] = useState(false)
   const [focus, setFocus] = useState(null)
+  const [chosen, setChosen] = useState(null)
   const patient = useLiveQuery(() => (pid ? db.patients.get(pid) : undefined), [pid])
 
   useEffect(() => {
@@ -111,6 +159,7 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
     return { all, kept, elimCols }
   }, [rep, picked, sortBy])
   const ranked = analysis.kept.slice(0, 25)
+  const selected = useMemo(() => analysis.kept.find(r => r.idx === chosen) || analysis.kept[0] || null, [analysis, chosen])
   const focused = useMemo(() => (focus === null ? null : analysis.all.find(r => r.idx === focus) || null), [analysis, focus])
   const pickedIds = useMemo(() => new Set(picked.map(p => p.id)), [picked])
 
@@ -127,6 +176,7 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
     setEditingId(null)
     setForVisit(null)
     setFocus(null)
+    setChosen(null)
   }
 
   const save = async prescribed => {
@@ -149,10 +199,12 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
         prescribed: prescribed ? { abbrev: prescribed.abbrev, name: prescribed.name } : null
       })
       const visitId = forVisit?.id || null
+      const rubricLines = picked.map((p, i) => `${i + 1}. ${rubricLabel(p.path)}${prescribed && prescribed.grades ? (prescribed.grades[i] ? ` (grade ${prescribed.grades[i]})` : ' (not covered)') : ''}`)
+      const findings = ['Repertorisation rubrics:', ...rubricLines].join('\n')
       clear()
       if (prescribed) {
         toast(`Repertorisation saved · prescribing ${prescribed.name}`)
-        go({ name: 'patient', id: pid, prescribe: { medicine: prescribed.name, visitId }, nonce: Date.now() })
+        go({ name: 'patient', id: pid, prescribe: { medicine: prescribed.name, visitId, findings }, nonce: Date.now() })
       } else toast(`Saved to ${patient?.name || 'patient'}'s case`)
     } catch (err) {
       toast(err.message || 'Could not save', 'err')
@@ -285,6 +337,12 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
                     ))}
                   </div>
                 </div>
+                {selected && (
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gold-400/30 bg-gold-500/10 px-3 py-2">
+                    <p className="text-sm text-gold-200">Selected: <span className="font-bold">{selected.name}</span> <span className="text-gold-200/55">· {selected.count}/{picked.length} rubrics · score {selected.score}</span></p>
+                    <button onClick={() => save(selected)} disabled={busy || !pid} title={pid ? '' : 'Choose the patient in Save to patient first'} className="btn-gold px-3 py-1.5 text-xs"><Pill size={14} /> Prescribe {selected.abbrev}</button>
+                  </div>
+                )}
                 {analysis.elimCols.length > 0 && (
                   <p className="mb-2 flex items-center gap-1.5 rounded-lg border border-rose-300/25 bg-rose-500/5 px-2.5 py-1.5 text-[11px] text-rose-100"><Filter size={12} /> Elimination on rubric {analysis.elimCols.map(c => c + 1).join(', ')} · {analysis.kept.length} of {analysis.all.length} remedies kept</p>
                 )}
@@ -296,11 +354,12 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
                         <th className="px-1 py-1.5 text-right font-semibold">Score</th>
                         <th className="px-1 py-1.5 text-right font-semibold">Rubrics</th>
                         {picked.map((p, i) => <th key={p.id} className="w-6 px-0.5 py-1.5 text-center font-semibold" title={p.path}>{i + 1}</th>)}
+                        <th className="w-7" />
                       </tr>
                     </thead>
                     <tbody>
                       {ranked.map((r, i) => (
-                        <tr key={r.idx} onClick={() => setFocus(f => (f === r.idx ? null : r.idx))} className={`cursor-pointer border-t border-gold-500/10 hover:bg-gold-500/5 ${focus === r.idx ? 'bg-gold-500/10' : ''} ${i < 3 ? 'text-gold-200' : 'text-gold-200/70'}`}>
+                        <tr key={r.idx} onClick={() => setChosen(r.idx)} className={`cursor-pointer border-t border-gold-500/10 ${selected?.idx === r.idx ? 'bg-gold-500/20 text-gold-100 ring-1 ring-inset ring-gold-400/50' : `hover:bg-gold-500/5 ${i < 3 ? 'text-gold-200' : 'text-gold-200/70'}`}`}>
                           <td className="py-1.5 pr-2" title={r.name}><span className={i < 3 ? 'font-bold' : ''}>{r.abbrev}</span></td>
                           <td className="px-1 py-1.5 text-right tabular-nums">{r.score}</td>
                           <td className="px-1 py-1.5 text-right tabular-nums">{r.count}/{picked.length}</td>
@@ -309,43 +368,29 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
                               {g ? <span className={`inline-block h-2.5 w-2.5 rounded-full ${g === 3 ? 'bg-gold-300' : g === 2 ? 'bg-gold-500/70' : 'bg-gold-500/30'}`} title={`Grade ${g}`} /> : <span className="text-gold-500/20">·</span>}
                             </td>
                           ))}
+                          <td className="pl-1 text-right">
+                            <button onClick={e => { e.stopPropagation(); setChosen(r.idx); setFocus(r.idx) }} className="rounded-md p-1 text-gold-400/70 hover:bg-gold-500/15 hover:text-gold-200" aria-label={`Why ${r.abbrev}`} title="Why this remedy"><Info size={15} /></button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <p className="mt-2 text-[10.5px] text-gold-200/40">Totality: most rubrics covered first. Sum of grades: highest score first. Kent: score with each rubric's importance doubled for 3 and halved for 1. Score = grade × importance. Tap a remedy to analyse it.</p>
+                <p className="mt-2 text-[10.5px] text-gold-200/40">Totality: most rubrics covered first. Sum of grades: highest score first. Kent: score with each rubric's importance doubled for 3 and halved for 1. Score = grade × importance. Tap a remedy to select it; tap ⓘ to see the rubrics it was chosen for.</p>
               </div>
             )}
 
-            {focused && (
-              <div className="glass p-4 sm:p-5">
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div>
-                    <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-gold-400/80"><Microscope size={12} /> Remedy analysis</p>
-                    <h3 className="font-display text-2xl font-semibold text-gold-200">{focused.name} <span className="text-base text-gold-300/70">{focused.abbrev}</span></h3>
-                    <p className="text-xs text-gold-200/55">Covers {focused.count} of {picked.length} rubrics · score {focused.score}</p>
-                  </div>
-                  <button onClick={() => setFocus(null)} className="p-1 text-gold-300/50 hover:text-gold-200" aria-label="Close"><X size={15} /></button>
-                </div>
-                <ol className="space-y-1.5">
-                  {picked.map((p, i) => {
-                    const g = focused.grades[i]
-                    return (
-                      <li key={p.id} className="flex items-start gap-2 text-[13px]">
-                        <span className="w-5 shrink-0 text-right text-gold-200/40">{i + 1}.</span>
-                        <span className={`min-w-0 flex-1 ${g ? 'text-gold-200' : 'text-gold-200/40 line-through decoration-rose-300/40'}`}>{p.path}</span>
-                        <span className={`shrink-0 rounded-md px-1.5 text-[11px] font-bold ${g === 3 ? 'gold-fill text-ink' : g === 2 ? 'border border-gold-400/50 text-gold-200' : g === 1 ? 'border border-gold-500/25 text-gold-200/70' : 'border border-rose-300/30 text-rose-200'}`}>{g ? `grade ${g}` : 'missing'}</span>
-                      </li>
-                    )
-                  })}
-                </ol>
-                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gold-500/10 pt-4">
-                  <button onClick={() => save(focused)} disabled={busy} className="btn-gold"><Pill size={16} /> Prescribe {focused.name}</button>
-                  <span className="text-[11px] text-gold-200/45">{pid ? `Saves this analysis to ${patient?.name || 'the patient'} and opens the ${forVisit ? 'consultation' : 'new consultation'} with ${focused.abbrev} in the prescription` : 'Choose the patient below first'}</span>
-                </div>
-              </div>
-            )}
+            <RemedyDialog
+              remedy={focused}
+              rubrics={picked}
+              onClose={() => setFocus(null)}
+              action={
+                <>
+                  <span className="mr-auto text-[11px] text-gold-200/45">{pid ? `Saves the analysis to ${patient?.name || 'the patient'} and opens the consultation` : 'Choose the patient in "Save to patient" first'}</span>
+                  <button onClick={() => { const r = focused; setFocus(null); save(r) }} disabled={busy || !pid} className="btn-gold"><Pill size={16} /> Prescribe {focused?.abbrev}</button>
+                </>
+              }
+            />
 
             {ranked.length > 1 && (
               <div className="glass p-4 sm:p-5">
@@ -382,6 +427,7 @@ export default function Repertory({ go, patientId, visit, load, nonce }) {
 }
 
 export function ResultGrid({ rubrics, results, limit = 30 }) {
+  const [pick, setPick] = useState(null)
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-[12.5px]">
@@ -392,11 +438,12 @@ export function ResultGrid({ rubrics, results, limit = 30 }) {
             <th className="px-1 py-1.5 text-right font-semibold">Score</th>
             <th className="px-1 py-1.5 text-right font-semibold">Rubrics</th>
             {rubrics.map((p, i) => <th key={i} className="w-6 px-0.5 py-1.5 text-center font-semibold" title={p.path}>{i + 1}</th>)}
+            <th className="w-7" />
           </tr>
         </thead>
         <tbody>
           {results.slice(0, limit).map((r, i) => (
-            <tr key={r.abbrev} className={`border-t border-gold-500/10 ${i < 3 ? 'text-gold-200' : 'text-gold-200/70'}`}>
+            <tr key={r.abbrev} onClick={() => setPick(r)} className={`cursor-pointer border-t border-gold-500/10 hover:bg-gold-500/5 ${i < 3 ? 'text-gold-200' : 'text-gold-200/70'}`}>
               <td className="py-1.5 pr-2 tabular-nums text-gold-200/40">{i + 1}</td>
               <td className="py-1.5 pr-2" title={r.name}><span className={i < 3 ? 'font-bold' : ''}>{r.abbrev}</span> <span className="hidden text-[11px] text-gold-200/40 sm:inline">{r.name}</span></td>
               <td className="px-1 py-1.5 text-right tabular-nums">{r.score}</td>
@@ -404,10 +451,12 @@ export function ResultGrid({ rubrics, results, limit = 30 }) {
               {(r.grades || []).map((g, c) => (
                 <td key={c} className="px-0.5 py-1.5 text-center tabular-nums">{g ? <span className={g === 3 ? 'font-bold text-gold-200' : g === 2 ? 'text-gold-300' : 'text-gold-200/50'}>{g}</span> : <span className="text-gold-500/20">·</span>}</td>
               ))}
+              <td className="pl-1 text-right"><Info size={15} className="inline text-gold-400/70" aria-label="Why this remedy" /></td>
             </tr>
           ))}
         </tbody>
       </table>
+      <RemedyDialog remedy={pick} rubrics={rubrics} onClose={() => setPick(null)} />
     </div>
   )
 }
@@ -462,7 +511,7 @@ function SavedRepertorisation({ r, patientId, go }) {
             </ol>
           </div>
           <div>
-            <p className="label">Result · numbers are the remedy's grade in each rubric</p>
+            <p className="label">Result · numbers are the remedy's grade in each rubric · tap a remedy to see its rubrics</p>
             {!results ? <p className="flex items-center gap-2 text-xs text-gold-200/50"><Loader2 size={14} className="animate-spin" /> Working it out…</p> : <ResultGrid rubrics={r.rubrics} results={results} />}
           </div>
         </div>
