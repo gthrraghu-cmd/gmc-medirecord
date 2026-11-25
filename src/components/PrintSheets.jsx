@@ -312,7 +312,7 @@ function CaseBlock({ title, children }) {
   )
 }
 
-export function CaseSheetDoc({ profile, patient, sheet, visits }) {
+export function CaseSheetDoc({ profile, patient, sheet, visits, reps = [] }) {
   const c = sheet || {}
   const join = arr => (arr || []).join(', ')
   return (
@@ -389,6 +389,37 @@ export function CaseSheetDoc({ profile, patient, sheet, visits }) {
           </table>
         </CaseBlock>
       )}
+      {reps.map(r => (
+        <CaseBlock key={r.id} title={`Repertorisation · ${fmtDate(r.date)}${r.visitId ? ' · consultation' : ''}`}>
+          <ol className="mt-[1mm] text-[8.5px] text-[#2a0a3d]">
+            {r.rubrics.map((p, i) => (
+              <li key={i} className="flex gap-[2mm] py-[0.4mm]"><span className="w-[4mm] font-bold text-[#a77d1c]">{i + 1}.</span><span className="flex-1">{p.path}</span><span className="text-[#8a7a98]">×{p.intensity || 1}</span></li>
+            ))}
+          </ol>
+          <table className="mt-[1.5mm] w-full border-collapse text-[8px]">
+            <thead>
+              <tr className="border-b border-[#d4a537] text-left text-[7px] uppercase tracking-[.12em] text-[#a77d1c]">
+                <th className="py-[0.8mm] font-bold">Remedy</th>
+                <th className="py-[0.8mm] text-right font-bold">Score</th>
+                <th className="py-[0.8mm] pr-[2mm] text-right font-bold">Rubrics</th>
+                {r.rubrics.map((p, i) => <th key={i} className="w-[4mm] py-[0.8mm] text-center font-bold">{i + 1}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {(r.results || r.top).slice(0, 12).map((t, i) => (
+                <tr key={t.abbrev} className="border-b border-[#efe6cc] text-[#2a0a3d]">
+                  <td className={`py-[0.8mm] ${i < 3 ? 'font-bold' : ''}`}>{t.abbrev} <span className="text-[#8a7a98]">{t.name}</span></td>
+                  <td className="py-[0.8mm] text-right">{t.score}</td>
+                  <td className="py-[0.8mm] pr-[2mm] text-right">{t.count}/{r.rubrics.length}</td>
+                  {r.rubrics.map((p, c) => <td key={c} className="py-[0.8mm] text-center">{t.grades ? t.grades[c] || '·' : ''}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {r.prescribed && <p className="mt-[1mm] text-[8.5px] text-[#2a0a3d]"><span className="text-[#8a7a98]">Prescribed </span><span className="font-bold">{r.prescribed.name}</span></p>}
+          {r.note && <p className="mt-[1mm] text-[8.5px] italic text-[#2a0a3d]">{r.note}</p>}
+        </CaseBlock>
+      ))}
       <Signature profile={profile} L={k => docT('en', k)} />
       <Footer profile={profile} />
     </Paper>

@@ -149,10 +149,11 @@ export function repertorise(rep, picked) {
     for (const r of rep.remedies(p.id)) {
       let t = totals.get(r.idx)
       if (!t) {
-        t = { idx: r.idx, abbrev: r.abbrev, name: r.name, score: 0, count: 0, grades: new Array(picked.length).fill(0) }
+        t = { idx: r.idx, abbrev: r.abbrev, name: r.name, score: 0, kent: 0, count: 0, grades: new Array(picked.length).fill(0) }
         totals.set(r.idx, t)
       }
       t.score += r.grade * (p.intensity || 1)
+      t.kent += r.grade * ({ 1: 0.5, 2: 1, 3: 2 }[p.intensity || 1] || 1)
       t.count += 1
       t.grades[col] = r.grade
     }
@@ -162,7 +163,8 @@ export function repertorise(rep, picked) {
 
 export function sortResults(list, by) {
   const copy = [...list]
-  if (by === 'score') copy.sort((a, b) => b.score - a.score || b.count - a.count || a.abbrev.localeCompare(b.abbrev))
+  if (by === 'kent') copy.sort((a, b) => b.kent - a.kent || b.count - a.count || a.abbrev.localeCompare(b.abbrev))
+  else if (by === 'score') copy.sort((a, b) => b.score - a.score || b.count - a.count || a.abbrev.localeCompare(b.abbrev))
   else copy.sort((a, b) => b.count - a.count || b.score - a.score || a.abbrev.localeCompare(b.abbrev))
   return copy
 }

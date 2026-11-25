@@ -33,7 +33,7 @@ function Chips({ items, value, onPick }) {
   )
 }
 
-export default function VisitForm({ open, onClose, patient, visit }) {
+export default function VisitForm({ open, onClose, patient, visit, preset }) {
   const { tx } = useT()
   const [f, setF] = useState(blank(patient))
   const [busy, setBusy] = useState(false)
@@ -44,10 +44,16 @@ export default function VisitForm({ open, onClose, patient, visit }) {
 
   useEffect(() => {
     if (open) {
-      setF(visit ? { ...blank(patient), ...visit, rx: visit.rx?.length ? visit.rx : [{ ...RX }] } : blank(patient))
+      const base = visit ? { ...blank(patient), ...visit, rx: visit.rx?.length ? visit.rx : [{ ...RX }] } : blank(patient)
+      if (preset?.medicine) {
+        const rx = base.rx.filter(r => (r.medicine || '').trim())
+        if (!rx.some(r => r.medicine.trim().toLowerCase() === preset.medicine.toLowerCase())) rx.push({ ...RX, medicine: preset.medicine })
+        base.rx = rx.length ? rx : [{ ...RX }]
+      }
+      setF(base)
       setActiveRow(0)
     }
-  }, [open, visit, patient])
+  }, [open, visit, patient, preset])
 
   const used = useLiveQuery(async () => {
     const counts = {}

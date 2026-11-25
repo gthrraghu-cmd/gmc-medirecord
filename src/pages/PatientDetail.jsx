@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Pencil, Trash2, Plus, Phone, MapPin, Droplet, AlertTriangle, CalendarClock, Stethoscope, Pill, IndianRupee, FileText, ReceiptText, Wallet, CalendarPlus, CalendarCheck, ClipboardList, BookOpenText, Package, Images, FolderOpen } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Plus, Phone, MapPin, Droplet, AlertTriangle, CalendarClock, Stethoscope, Pill, IndianRupee, FileText, ReceiptText, Wallet, CalendarPlus, CalendarCheck, ClipboardList, BookOpenText, Package, Images, FolderOpen, BookOpenCheck } from 'lucide-react'
 import { db, deletePatient, deleteVisit, ensureReceiptNo, bookFollowUp } from '../lib/db.js'
 import { ageFrom, fmtDate, fmtMoney, fmtTime, todayISO } from '../lib/format.js'
 import { rxText, receiptText, waLink } from '../lib/share.js'
@@ -61,7 +61,7 @@ function Confirm({ open, onClose, onYes, title, text }) {
   )
 }
 
-export default function PatientDetail({ id, go, profile }) {
+export default function PatientDetail({ id, go, profile, prescribe }) {
   const { tx } = useT()
   const toast = useToast()
   const [editP, setEditP] = useState(false)
@@ -72,6 +72,12 @@ export default function PatientDetail({ id, go, profile }) {
   const [tab, setTab] = useState('visits')
   const { t: tr } = useT()
   const patient = useLiveQuery(() => db.patients.get(id).then(p => p || null), [id])
+  useEffect(() => {
+    if (!prescribe || !patient) return
+    if (prescribe.visitId) {
+      db.visits.get(prescribe.visitId).then(v => setVisitModal(v ? { visit: v, preset: prescribe } : { preset: prescribe }))
+    } else setVisitModal({ preset: prescribe })
+  }, [prescribe, patient?.id])
   const appts = useLiveQuery(() => db.appointments.where('patientId').equals(id).toArray(), [id])
   const visits = useLiveQuery(() => db.visits.where('patientId').equals(id).toArray().then(a => a.sort((x, y) => (y.date + y.createdAt).localeCompare(x.date + x.createdAt))), [id])
 
@@ -134,6 +140,7 @@ export default function PatientDetail({ id, go, profile }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setVisitModal({})} className="btn-gold"><Plus size={16} /> {tr('patient.consultation')}</button>
+            <button onClick={() => go({ name: 'repertory', patientId: patient.id, nonce: Date.now() })} className="btn-ghost"><BookOpenCheck size={15} /> Repertorise</button>
             <button onClick={() => setEditP(true)} className="btn-ghost"><Pencil size={15} /> {tr('patient.edit')}</button>
             <button onClick={() => setConfirm({ type: 'patient' })} className="btn-danger px-3" aria-label={tx('Delete patient')}><Trash2 size={15} /></button>
           </div>
@@ -210,6 +217,7 @@ export default function PatientDetail({ id, go, profile }) {
                         <DeptChip dept={v.department} />
                       </div>
                       <div className="flex items-center gap-1">
+                        <button onClick={() => go({ name: 'repertory', patientId: patient.id, visit: { id: v.id, date: v.date }, nonce: Date.now() })} className="rounded-lg p-2 text-gold-300/60 hover:bg-night-600/50 hover:text-gold-200" aria-label="Repertorise this visit" title="Repertorise this visit"><BookOpenCheck size={15} /></button>
                         <button onClick={() => setVisitModal({ visit: v })} className="rounded-lg p-2 text-gold-300/60 hover:bg-night-600/50 hover:text-gold-200" aria-label={tx('Edit')}><Pencil size={15} /></button>
                         <button onClick={() => setConfirm({ type: 'visit', id: v.id })} className="rounded-lg p-2 text-gold-300/60 hover:bg-rose-500/10 hover:text-rose-300" aria-label={tx('Delete')}><Trash2 size={15} /></button>
                       </div>
@@ -298,7 +306,7 @@ export default function PatientDetail({ id, go, profile }) {
       />
       <MarkPaid visit={collectVisit} patient={patient} onClose={() => setCollectId(null)} />
       <PatientForm open={editP} onClose={() => setEditP(false)} patient={patient} />
-      <VisitForm open={!!visitModal} onClose={() => setVisitModal(null)} patient={patient} visit={visitModal?.visit} />
+      <VisitForm open={!!visitModal} onClose={() => setVisitModal(null)} patient={patient} visit={visitModal?.visit} preset={visitModal?.preset} />
       <Confirm
         open={!!confirm}
         onClose={() => setConfirm(null)}

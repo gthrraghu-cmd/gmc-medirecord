@@ -54,6 +54,7 @@ export default function CaseSheet({ patient, profile }) {
   const [updatedAt, setUpdatedAt] = useState(null)
   const [dirty, setDirty] = useState(false)
   const [printOpen, setPrintOpen] = useState(false)
+  const reps = useLiveQuery(() => db.cases.get(patient.id).then(c => c?.repertorisations || []), [patient.id]) || []
   const visits = useLiveQuery(() => db.visits.where('patientId').equals(patient.id).toArray().then(a => a.sort((x, y) => x.date.localeCompare(y.date))), [patient.id]) || []
 
   useEffect(() => {
@@ -98,7 +99,7 @@ export default function CaseSheet({ patient, profile }) {
         </div>
       </div>
 
-      <DocPreview open={printOpen} onClose={() => setPrintOpen(false)} title={tx('Print case sheet')} subtitle={`${patient.name} · ${patient.code}`} sheet={<CaseSheetDoc profile={profile} patient={patient} sheet={f} visits={visits} />} />
+      <DocPreview open={printOpen} onClose={() => setPrintOpen(false)} title={tx('Print case sheet')} subtitle={`${patient.name} · ${patient.code}`} sheet={<CaseSheetDoc profile={profile} patient={patient} sheet={f} visits={visits} reps={reps} />} />
 
       <Card i={0} icon={Stethoscope} title={tx('Presenting complaint')}>
         <div className="grid gap-4 sm:grid-cols-2">
