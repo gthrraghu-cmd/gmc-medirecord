@@ -85,14 +85,19 @@ export function dueReminderText(profile, patient, visit) {
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n').trim()
 }
 
+function salutation(gender) {
+  const g = String(gender || '').trim().toLowerCase()
+  if (g === 'male') return ' sir'
+  if (g === 'female') return ' mam'
+  return ''
+}
+
 export function followUpText(profile, patient, date, overdue) {
   const clinic = profile.clinicName || 'Gayathri Multi Speciality Clinic'
-  return [
-    header(profile),
-    '',
-    `${docT(profile.docLang, 'dear')} ${patient.name},`,
-    docT(profile.docLang, overdue ? 'followUpLate' : 'followUpSoon', { clinic, date: fmtDate(date) }),
-    '',
-    footer(profile)
-  ].join('\n').trim()
+  const name = String(patient.name || '').trim()
+  const when = fmtDate(date)
+  const body = overdue
+    ? `This is a gentle reminder that your follow-up visit at ${clinic} was due on ${when}. Please reply here to book a convenient time.`
+    : `This is a gentle reminder of your follow-up visit at ${clinic} on ${when}. Please reply here to confirm a convenient time.`
+  return [`*${clinic}*`, '', `Hi ${name}${salutation(patient.gender)},`, body].join('\n')
 }

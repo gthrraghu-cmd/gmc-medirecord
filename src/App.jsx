@@ -17,7 +17,8 @@ import { getProfile } from './lib/db.js'
 import { LangProvider, useT } from './lib/i18n.jsx'
 import { getThemePref, resolveTheme, setThemePref } from './lib/theme.js'
 import { runAutoBackup } from './lib/autobackup.js'
-import { startSync, stopSync } from './lib/sync.js'
+import { startSync, stopSync, bootstrapPostgres, useSyncStatus } from './lib/sync.js'
+import { Crest } from './components/ui.jsx'
 import { FolderSync, X } from 'lucide-react'
 
 function typingIn(el) {
@@ -26,9 +27,24 @@ function typingIn(el) {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
 }
 
+function BootScreen() {
+  const st = useSyncStatus()
+  const waiting = st.phase === 'offline' && st.message
+  return (
+    <div className="grid min-h-screen place-items-center bg-night-950">
+      <div className="flex flex-col items-center gap-4 px-6 text-center">
+        <Crest className="h-20 w-20 animate-pulse" />
+        <p className="text-xs font-semibold uppercase tracking-[.22em] text-gold-400/70">{waiting ? 'Starting up…' : 'Opening records…'}</p>
+        {waiting && <p className="max-w-xs text-xs text-gold-200/50">{st.message}</p>}
+      </div>
+    </div>
+  )
+}
+
 function Main() {
   const { tx } = useT()
   const [unlocked, setUnlocked] = useState(false)
+  const [booted, setBooted] = useState(false)
   const [view, setView] = useState({ name: 'dashboard' })
   const [newOpen, setNewOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -38,7 +54,12 @@ function Main() {
   const timer = useRef(null)
 
   useEffect(() => {
-    getProfile().then(setProfile)
+    bootstrapPostgres()
+      .catch(() => {})
+      .finally(() => {
+        getProfile().then(setProfile)
+        setBooted(true)
+      })
   }, [])
 
   useEffect(() => {
@@ -134,6 +155,10 @@ function Main() {
   }
 
   const shortClinic = (profile.clinicName || 'Multi Speciality Clinic').replace(/^Gayathri\s*/i, '') || 'Multi Speciality Clinic'
+
+  if (!booted) {
+    return <BootScreen />
+  }
 
   if (!unlocked) return <Lock onUnlock={() => setUnlocked(true)} />
 

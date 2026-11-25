@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,woff,woff2,svg}'],
+        globIgnores: ['**/gmc-runtime.js'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: 'index.html'
       }
